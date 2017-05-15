@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use std::cmp;
 use std::sync::Arc;
 
-use thread_local::CachedThreadLocal;
 use syntax::{Expr, ExprBuilder, Literals};
 
 use backtrack;
@@ -40,7 +39,7 @@ pub struct Exec {
     /// All read only state.
     ro: Arc<ExecReadOnly>,
     /// Caches for the various matching engines.
-    cache: CachedThreadLocal<ProgramCache>,
+    cache: Box<ProgramCache>,
 }
 
 /// ExecNoSync is like Exec, except it embeds a reference to a cache. This
@@ -271,7 +270,8 @@ impl ExecBuilder {
                 suffixes: LiteralSearcher::empty(),
                 match_type: MatchType::Nothing,
             });
-            return Ok(Exec { ro: ro, cache: CachedThreadLocal::new() });
+            let cache = Box::new(ProgramCache::new(ProgramCacheInner::new(&ro)));
+            return Ok(Exec { ro: ro, cache: cache });
         }
         let parsed = try!(self.parse());
         let mut nfa = try!(
@@ -312,7 +312,8 @@ impl ExecBuilder {
         ro.match_type = ro.choose_match_type(self.match_type);
 
         let ro = Arc::new(ro);
-        Ok(Exec { ro: ro, cache: CachedThreadLocal::new() })
+        let cache = Box::new(ProgramCache::new(ProgramCacheInner::new(&ro)));
+        Ok(Exec { ro: ro, cache: cache})
     }
 }
 
@@ -1049,10 +1050,10 @@ impl Exec {
     /// Get a searcher that isn't Sync.
     #[inline(always)] // reduces constant overhead
     pub fn searcher(&self) -> ExecNoSync {
-        let create = || Box::new(RefCell::new(ProgramCacheInner::new(&self.ro)));
+        //let create = || Box::new(RefCell::new(ProgramCacheInner::new(&self.ro)));
         ExecNoSync {
             ro: &self.ro, // a clone is too expensive here! (and not needed)
-            cache: self.cache.get_or(create),
+            cache: self.cache.as_ref(),
         }
     }
 
@@ -1104,9 +1105,11 @@ impl Exec {
 
 impl Clone for Exec {
     fn clone(&self) -> Exec {
+        let roclone = self.ro.clone();
+        let cache = Box::new(ProgramCache::new(ProgramCacheInner::new(&self.ro)));
         Exec {
-            ro: self.ro.clone(),
-            cache: CachedThreadLocal::new(),
+            ro: roclone,
+            cache: cache,
         }
     }
 }

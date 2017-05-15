@@ -110,7 +110,7 @@ regular expressions are compiled exactly once.
 
 For example:
 
-```rust
+```no_run
 #[macro_use] extern crate lazy_static;
 extern crate regex;
 

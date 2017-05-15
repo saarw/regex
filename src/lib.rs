@@ -77,7 +77,7 @@ regular expressions are compiled exactly once.
 
 For example:
 
-```rust
+```rust,ignore
 #[macro_use] extern crate lazy_static;
 extern crate regex;
 

@@ -1105,11 +1105,11 @@ impl Exec {
 
 impl Clone for Exec {
     fn clone(&self) -> Exec {
-        let roclone = self.ro.clone();
-        let cache = Box::new(ProgramCache::new(ProgramCacheInner::new(&self.ro)));
+        // let roclone = self.ro.clone();
+        // let cache = Box::new(ProgramCache::new(ProgramCacheInner::new(&self.ro)));
         Exec {
-            ro: roclone,
-            cache: cache,
+            ro: self.ro.clone(),
+            cache: self.cache.clone(),
         }
     }
 }
